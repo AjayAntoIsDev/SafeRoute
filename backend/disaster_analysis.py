@@ -3,6 +3,7 @@ from typing import Dict, Any
 from groq import Groq
 from models import DisasterPrediction
 from config import GROQ_API_KEY
+from datetime import datetime
 from utils import (
     calculate_rule_based_probability, 
     get_risk_level, 
@@ -35,14 +36,13 @@ async def analyze_disaster_risk_with_groq(
                 },
                 {"role": "user", "content": prompt}
             ],
-            model="llama3-8b-8192",
-            temperature=0.3,
+            model="deepseek-r1-distill-llama-70b",
+            temperature=0.45,
             max_tokens=1000
         )
 
         llm_response = chat_completion.choices[0].message.content
 
-        # Try to parse JSON from LLM response
         try:
             parsed_response = _parse_llm_response(llm_response)
             return DisasterPrediction(
@@ -70,7 +70,6 @@ def create_fallback_prediction(weather_data: Dict, geo_data: Dict, location_info
     primary_threats = get_primary_threats_rule_based(weather_data, geo_data)
     recommendations = get_recommendations_rule_based(probability, geo_data)
 
-    # Create a structured analysis dictionary matching the expected format
     fallback_analysis = {
         "floods": {
             "probability": 20.0,
@@ -178,11 +177,20 @@ def _get_analysis_structure() -> str:
         """
 
 
+
 def _create_analysis_prompt(weather_data: Dict, geo_data: Dict, location_info: Dict, lat: float, lon: float, structured: str) -> str:
     """Create the analysis prompt for LLM"""
+    current_time = datetime.now()
+
     return f"""
     Analyze natural disaster risk for location: {location_info['city']}, {location_info['state']}, India
     Coordinates: {lat}, {lon}
+
+    
+    CURRENT_DATE_TIME:
+    Date: {current_time.strftime('%Y-%m-%d')}
+    Time: {current_time.strftime('%H:%M:%S')}
+    Season: {_get_season(current_time.month)}
 
     WEATHER DATA:
     Current Temperature: {weather_data['current'].get('main', {}).get('temp', 'N/A')}°C
@@ -209,9 +217,20 @@ def _create_analysis_prompt(weather_data: Dict, geo_data: Dict, location_info: D
     """
 
 
+def _get_season(month: int) -> str:
+    """Get season based on month (for India)"""
+    if month in [12, 1, 2]:
+        return "Winter"
+    elif month in [3, 4, 5]:
+        return "Summer"
+    elif month in [6, 7, 8, 9]:
+        return "Monsoon"
+    else:  # month in [10, 11]
+        return "Post-Monsoon"
+
+
 def _parse_llm_response(llm_response: str) -> Dict:
     """Parse JSON response from LLM"""
-    # Extract JSON from response if it's wrapped in text
     if "```json" in llm_response:
         json_start = llm_response.find("```json") + 7
         json_end = llm_response.find("```", json_start)
