@@ -5,9 +5,9 @@ from models import DisasterPrediction
 from config import GROQ_API_KEY
 from datetime import datetime
 from utils import (
-    calculate_rule_based_probability, 
-    get_risk_level, 
-    get_primary_threats_rule_based, 
+    calculate_rule_based_probability,
+    get_risk_level,
+    get_primary_threats_rule_based,
     get_recommendations_rule_based
 )
 
@@ -26,7 +26,8 @@ async def analyze_disaster_risk_with_groq(
         client = Groq(api_key=GROQ_API_KEY)
 
         structured = _get_analysis_structure()
-        prompt = _create_analysis_prompt(weather_data, geo_data, location_info, lat, lon, structured)
+        prompt = _create_analysis_prompt(
+            weather_data, geo_data, location_info, lat, lon, structured)
 
         chat_completion = client.chat.completions.create(
             messages=[
@@ -177,7 +178,6 @@ def _get_analysis_structure() -> str:
         """
 
 
-
 def _create_analysis_prompt(weather_data: Dict, geo_data: Dict, location_info: Dict, lat: float, lon: float, structured: str) -> str:
     """Create the analysis prompt for LLM"""
     current_time = datetime.now()
@@ -214,6 +214,22 @@ def _create_analysis_prompt(weather_data: Dict, geo_data: Dict, location_info: D
     Consider seasonal patterns, regional vulnerabilities, current weather conditions, and geographic factors.
     Focus on realistic threats for India: floods, cyclones, earthquakes, landslides, heat waves, droughts.
     Make sure you only return valid JSON without any additional text or formatting.
+
+
+    The response must:
+
+    1. Include ALL fields shown above
+
+    2. Use only the exact field names shown
+
+    3. Follow the exact data types specified
+
+    4. Contain ONLY the JSON object and nothing else
+
+
+    IMPORTANT: Do not include any explanatory text, markdown formatting, or code blocks.
+
+
     """
 
 
