@@ -8,7 +8,6 @@ class CoordinateRequest(BaseModel):
 
 
 class DisasterPrediction(BaseModel):
-    weather_data: Dict[str, Any]
     geographic_data: Dict[str, Any]
     analysis: Dict[str, Any]
     location_info: Dict[str, Any]

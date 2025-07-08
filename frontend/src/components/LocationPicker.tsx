@@ -5,15 +5,10 @@ import L from 'leaflet';
 import { useLocation } from '../contexts/LocationContext';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default markers in react-leaflet
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import markerIconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 
 const DefaultIcon = new Icon({
   iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconRetinaUrl: markerIconRetina,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -46,12 +41,10 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const defaultCenter: [number, number] = [9.9177, 78.1125];
 
   useEffect(() => {
-    // Set default icon for all markers
     // @ts-expect-error - Leaflet internal API
     L.Marker.prototype.options.icon = DefaultIcon;
   }, []);
 
-  // Force map refresh after mount
   useEffect(() => {
     const timer = setTimeout(() => {
       if (mapRef.current) {
@@ -64,7 +57,6 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   return (
     <div className={`location-picker relative h-full w-full ${className}`} style={{ minHeight: '300px' }}>
-      {/* Full screen map */}
       <div className="absolute inset-0">
         <MapContainer
           center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : defaultCenter}
@@ -77,7 +69,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           dragging={true}
           tap={true}
           tapTolerance={15}
-          zoomControl={true}
+          zoomControl={false}
           attributionControl={true}
         >
           <TileLayer

@@ -13,6 +13,7 @@ interface LocationContextType {
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLocation = () => {
   const context = useContext(LocationContext);
   if (context === undefined) {

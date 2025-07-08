@@ -38,16 +38,17 @@ async def analyze_disaster_risk_with_groq(
                 {"role": "user", "content": prompt}
             ],
             model="deepseek-r1-distill-llama-70b",
-            temperature=0.45,
-            max_tokens=1000
+            temperature=0.5,
+            max_tokens=2500
         )
 
         llm_response = chat_completion.choices[0].message.content
 
         try:
+            print(llm_response)
             parsed_response = _parse_llm_response(llm_response)
+            
             return DisasterPrediction(
-                weather_data=weather_data,
                 geographic_data=geo_data,
                 location_info=location_info,
                 analysis=parsed_response
@@ -112,7 +113,6 @@ def create_fallback_prediction(weather_data: Dict, geo_data: Dict, location_info
     }
 
     return DisasterPrediction(
-        weather_data=weather_data,
         geographic_data=geo_data,
         location_info=location_info,
         analysis=fallback_analysis
@@ -164,7 +164,6 @@ def _get_analysis_structure() -> str:
                 "analysis": "<str>"  # Detailed analysis of the landslide risk
             },
             "conclusion": {
-                "probability": "<float>",  # Overall probability of a natural disaster occurring
                 "risk_level": "<str>",      # Overall risk level (Low, Medium, High)
                 "primary_threats": [
                     "<str>"  # List of primary threats (e.g., "flooding", "cyclone")
@@ -247,6 +246,12 @@ def _get_season(month: int) -> str:
 
 def _parse_llm_response(llm_response: str) -> Dict:
     """Parse JSON response from LLM"""
+    # Remove <think> tags and content if present
+    if "<think>" in llm_response and "</think>" in llm_response:
+        think_start = llm_response.find("<think>")
+        think_end = llm_response.find("</think>") + 8
+        llm_response = llm_response[:think_start] + llm_response[think_end:]
+    
     if "```json" in llm_response:
         json_start = llm_response.find("```json") + 7
         json_end = llm_response.find("```", json_start)
