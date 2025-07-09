@@ -212,7 +212,9 @@ def _create_analysis_prompt(weather_data: Dict, geo_data: Dict, location_info: D
 
     Consider seasonal patterns, regional vulnerabilities, current weather conditions, and geographic factors.
     Focus on realistic threats for India: floods, cyclones, earthquakes, landslides, heat waves, droughts.
-    Make sure you only return valid JSON without any additional text or formatting.
+    Make sure you only return valid JSON without any additional text or formatting.Give more importance to the current weather conditions in the analysis and less for the geographic data but dont discard it.
+
+    For the recommendations, focus on practical actions people can take to prepare for and respond to these threats Make sure they are tailored to the specific threats identified in the analysis and to the current geographic and weather conditions make them feel unique and not just your general safety tips also according to the risk level increase the urgency and the aggressiveness.
 
 
     The response must:
