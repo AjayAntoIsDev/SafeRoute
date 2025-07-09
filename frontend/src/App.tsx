@@ -245,6 +245,7 @@ function AppContent() {
             {/* Full-screen disaster detail view */}
             {showDetailView && selectedDisaster && (
                 <DisasterDetailView
+                    allData={disasterData}
                     disaster={selectedDisaster.data}
                     disasterType={selectedDisaster.type}
                     onClose={handleCloseDetailView}

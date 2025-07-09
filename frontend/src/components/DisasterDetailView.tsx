@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DisasterChatbot from './DisasterChatbot';
+import InlineDisasterChat from './InlineDisasterChat';
 
 interface DisasterInfo {
   probability: number;
@@ -9,6 +9,7 @@ interface DisasterInfo {
 }
 
 interface DisasterDetailViewProps {
+  allData: unknown; 
   disaster: DisasterInfo;
   disasterType: string;
   onClose: () => void;
@@ -16,12 +17,13 @@ interface DisasterDetailViewProps {
 }
 
 const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
+  allData,
   disaster,
   disasterType,
   onClose,
   onSelectForMap
 }) => {
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [showChatbot, setShowChatbot] = useState(true);
 
   const getDisasterIcon = (disasterType: string) => {
     switch (disasterType.toLowerCase()) {
@@ -116,15 +118,22 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                       </ul>
                   </div>
               </div>
+              <InlineDisasterChat
+                  allData={allData}
+                  disaster={disaster}
+                  disasterType={disasterType}
+                  isVisible={showChatbot}
+              />
+
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                   <button
-                      className="btn btn-ghost w-full sm:w-auto"
-                      onClick={() => setIsChatbotOpen(true)}>
+                      className="btn btn-ghost w-full sm:w-auto hidden"
+                      onClick={() => setShowChatbot(!showChatbot)}>
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      Ask AI Assistant
+                      {showChatbot ? 'Hide AI Assistant' : 'Ask AI Assistant'}
                   </button>
                   <button
                       className="btn btn-outline w-full sm:w-auto"
@@ -137,14 +146,6 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                       Show on Map
                   </button>
               </div>
-
-              {/* Chatbot */}
-              <DisasterChatbot
-                  disaster={disaster}
-                  disasterType={disasterType}
-                  isOpen={isChatbotOpen}
-                  onClose={() => setIsChatbotOpen(false)}
-              />
           </div>
       </div>
   );
