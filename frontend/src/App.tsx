@@ -2,13 +2,55 @@ import React, { useState } from "react";
 import { LocationProvider, useLocation } from "./contexts/LocationContext";
 import LocationPicker from "./components/LocationPicker";
 import DisasterResultModal from "./components/DisasterResultModal";
+import DisasterDetailView from "./components/DisasterDetailView";
 import "./App.css";
+
+interface DisasterInfo {
+  probability: number;
+  risk_level: string;
+  recommendations: string[];
+  analysis: string;
+}
 
 function AppContent() {
     const { selectedLocation } = useLocation();
     const [isLoading, setIsLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [disasterData, setDisasterData] = useState(null);
+    const [selectedDisasterType, setSelectedDisasterType] = useState<string | null>(null);
+    const [showDetailView, setShowDetailView] = useState(false);
+    const [selectedDisaster, setSelectedDisaster] = useState<{
+        data: DisasterInfo;
+        type: string;
+    } | null>(null);
+
+    const handleDisasterSelection = (disasterType: string) => {
+        setSelectedDisasterType(disasterType);
+        console.log(`Selected disaster type: ${disasterType} for map display`);
+        // Here you can add logic to show the selected disaster on the map
+        // For example, you could highlight specific areas, show risk zones, etc.
+    };
+
+    const handleShowDisasterDetail = (disaster: DisasterInfo, disasterType: string) => {
+        setSelectedDisaster({ data: disaster, type: disasterType });
+        setShowModal(false); // Close the modal
+        setShowDetailView(true); // Show the detail view
+    };
+
+    const handleCloseDetailView = () => {
+        setShowDetailView(false);
+        setSelectedDisaster(null);
+        setShowModal(true); // Go back to the modal
+    };
+
+    const handleSelectForMap = () => {
+        if (selectedDisaster) {
+            handleDisasterSelection(selectedDisaster.type);
+        }
+        setShowDetailView(false);
+        setSelectedDisaster(null);
+        // Modal stays closed, user sees the map with selected disaster
+    };
 
 
     return (
@@ -129,6 +171,32 @@ function AppContent() {
                               )}
                           </div>
                       )}*/}
+                      
+                      {/* Selected disaster type indicator */}
+                      {selectedDisasterType && (
+                          <div className="bg-warning/90 backdrop-blur-sm text-warning-content rounded-lg p-4 shadow-lg mb-4">
+                              <h3 className="font-bold mb-2 flex items-center gap-2">
+                                  <span className="text-lg">
+                                      {selectedDisasterType === 'floods' && '🌊'}
+                                      {selectedDisasterType === 'cyclone' && '🌪️'}
+                                      {selectedDisasterType === 'earthquakes' && '🌍'}
+                                      {selectedDisasterType === 'droughts' && '🌵'}
+                                      {selectedDisasterType === 'landslides' && '⛰️'}
+                                  </span>
+                                  Selected Disaster: {selectedDisasterType.charAt(0).toUpperCase() + selectedDisasterType.slice(1)}
+                              </h3>
+                              <p className="text-sm">
+                                  Risk analysis is shown for this disaster type. 
+                                  {selectedLocation && " Check the map overlay for affected areas."}
+                              </p>
+                              <button 
+                                  className="btn btn-sm btn-ghost mt-2"
+                                  onClick={() => setSelectedDisasterType(null)}
+                              >
+                                  Clear Selection
+                              </button>
+                          </div>
+                      )}
                     </div>
                 </div>
 
@@ -170,7 +238,19 @@ function AppContent() {
                 onClose={() => setShowModal(false)}
                 data={disasterData}
                 isLoading={isLoading}
+                onDisasterSelected={handleDisasterSelection}
+                onShowDisasterDetail={handleShowDisasterDetail}
             />
+
+            {/* Full-screen disaster detail view */}
+            {showDetailView && selectedDisaster && (
+                <DisasterDetailView
+                    disaster={selectedDisaster.data}
+                    disasterType={selectedDisaster.type}
+                    onClose={handleCloseDetailView}
+                    onSelectForMap={handleSelectForMap}
+                />
+            )}
             </div>
         </div>
     );

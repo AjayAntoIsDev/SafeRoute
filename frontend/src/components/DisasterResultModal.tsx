@@ -47,13 +47,16 @@ interface DisasterResultModalProps {
   onClose: () => void;
   data: DisasterData | null;
   isLoading: boolean;
+  onDisasterSelected?: (disasterType: string) => void;
+  onShowDisasterDetail?: (disaster: DisasterInfo, disasterType: string) => void;
 }
 
 const DisasterResultModal: React.FC<DisasterResultModalProps> = ({ 
   isOpen, 
   onClose, 
   data, 
-  isLoading 
+  isLoading,
+  onShowDisasterDetail
 }) => {
   if (!isOpen) return null;
 
@@ -110,6 +113,12 @@ const DisasterResultModal: React.FC<DisasterResultModalProps> = ({
     }
   };
 
+  const handleDisasterClick = (disasterData: DisasterInfo, disasterType: string) => {
+    if (onShowDisasterDetail) {
+      onShowDisasterDetail(disasterData, disasterType);
+    }
+  };
+
   const disasters = [
     { key: 'floods', name: 'Floods' },
     { key: 'cyclone', name: 'Cyclone' },
@@ -163,7 +172,8 @@ const DisasterResultModal: React.FC<DisasterResultModalProps> = ({
                                           return (
                                               <div
                                                   key={key}
-                                                  className={`card ${getDisasterCardColor(key)} shadow-sm`}>
+                                                  className={`card ${getDisasterCardColor(key)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
+                                                  onClick={() => handleDisasterClick(disasterData, key)}>
                                                   <div className="card-body p-4">
                                                       <div className="flex items-center gap-3 mb-3">
                                                           <span className="text-2xl">
@@ -229,6 +239,12 @@ const DisasterResultModal: React.FC<DisasterResultModalProps> = ({
                                                                       </p>
                                                                   </div>
                                                               )}
+                                                          
+                                                          <div className="mt-3 pt-2 border-t border-gray-200">
+                                                              <p className="text-xs text-center text-gray-500">
+                                                                  Click for details
+                                                              </p>
+                                                          </div>
                                                       </div>
                                                   </div>
                                               </div>
