@@ -12,6 +12,44 @@ interface DisasterInfo {
   analysis: string;
 }
 
+interface EmergencyBuilding {
+  id: string;
+  name: string;
+  type: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  phone?: string;
+  distance?: number;
+}
+
+interface OSMElement {
+  type: string;
+  id?: number;
+  lat?: number;
+  lon?: number;
+  bounds?: {
+    minlat: number;
+    maxlat: number;
+    minlon: number;
+    maxlon: number;
+  };
+  tags?: {
+    amenity?: string;
+    name?: string;
+    phone?: string;
+    'addr:full'?: string;
+    'addr:street'?: string;
+    [key: string]: string | undefined;
+  };
+}
+
+interface OSMResponse {
+  data?: {
+    elements?: OSMElement[];
+  };
+}
+
 function AppContent() {
     const { selectedLocation } = useLocation();
     const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +61,92 @@ function AppContent() {
         data: DisasterInfo;
         type: string;
     } | null>(null);
+    const [emergencyBuildings, setEmergencyBuildings] = useState<EmergencyBuilding[]>([]);
+    const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
 
-    const handleDisasterSelection = (disasterType: string) => {
+    const fetchEmergencyBuildings = async (lat: number, lng: number) => {
+        setIsLoadingBuildings(true);
+        try {
+            const response = await fetch('http://localhost:8000/buildings-emergency?radius=1500', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lng
+                })
+            });
+            const osmData: OSMResponse = await response.json();
+            
+            // Process OSM data into EmergencyBuilding format
+            const buildings: EmergencyBuilding[] = [];
+            
+            if (osmData.data && osmData.data.elements) {
+                osmData.data.elements.forEach((element: OSMElement, index: number) => {
+                    if (element.tags && element.tags.amenity) {
+                        const amenity = element.tags.amenity;
+                        
+                        // Only include medical/emergency facilities
+                        if (['hospital', 'clinic', 'doctors', 'pharmacy', 'emergency'].includes(amenity)) {
+                            const building: EmergencyBuilding = {
+                                id: `${element.type}_${element.id || index}`,
+                                name: element.tags.name || `${amenity.charAt(0).toUpperCase() + amenity.slice(1)}`,
+                                type: amenity === 'doctors' ? 'clinic' : amenity,
+                                latitude: element.lat || (element.bounds ? (element.bounds.minlat + element.bounds.maxlat) / 2 : lat),
+                                longitude: element.lon || (element.bounds ? (element.bounds.minlon + element.bounds.maxlon) / 2 : lng),
+                                address: element.tags['addr:full'] || element.tags['addr:street'] || undefined,
+                                phone: element.tags.phone || undefined
+                            };
+                            
+                            // Calculate distance from selected location
+                            const distance = calculateDistance(
+                                lat, lng,
+                                building.latitude, building.longitude
+                            );
+                            building.distance = distance;
+                            
+                            buildings.push(building);
+                        }
+                    }
+                });
+            }
+            
+            // Sort by distance and limit to closest 20
+            buildings.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+            const limitedBuildings = buildings.slice(0, 20);
+            
+            setEmergencyBuildings(limitedBuildings);
+            console.log('Processed emergency buildings:', limitedBuildings);
+        } catch (error) {
+            console.error('Error fetching emergency buildings:', error);
+            setEmergencyBuildings([]);
+        } finally {
+            setIsLoadingBuildings(false);
+        }
+    };
+
+    // Helper function to calculate distance between two coordinates
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+        const R = 6371000; // Earth's radius in meters
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    };
+
+    const handleDisasterSelection = async (disasterType: string) => {
         setSelectedDisasterType(disasterType);
         console.log(`Selected disaster type: ${disasterType} for map display`);
-        // Here you can add logic to show the selected disaster on the map
-        // For example, you could highlight specific areas, show risk zones, etc.
+        
+        // Fetch emergency buildings when a disaster type is selected
+        if (selectedLocation) {
+            await fetchEmergencyBuildings(selectedLocation.lat, selectedLocation.lng);
+        }
     };
 
     const handleShowDisasterDetail = (disaster: DisasterInfo, disasterType: string) => {
@@ -43,9 +161,9 @@ function AppContent() {
         setShowModal(true); // Go back to the modal
     };
 
-    const handleSelectForMap = () => {
+    const handleSelectForMap = async () => {
         if (selectedDisaster) {
-            handleDisasterSelection(selectedDisaster.type);
+            await handleDisasterSelection(selectedDisaster.type);
         }
         setShowDetailView(false);
         setSelectedDisaster(null);
@@ -122,7 +240,7 @@ function AppContent() {
             </div>
 
             <div className="relative flex-1 min-h-0">
-                <LocationPicker />
+                <LocationPicker emergencyBuildings={emergencyBuildings} />
                 <div className="absolute top-4 left-4 right-4 z-[1000] pointer-events-none">
                     <div className="flex flex-col gap-4 pointer-events-auto ">
                         <div className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 transition-all duration-1000 ease-in-out ${
@@ -191,10 +309,67 @@ function AppContent() {
                               </p>
                               <button 
                                   className="btn btn-sm btn-ghost mt-2"
-                                  onClick={() => setSelectedDisasterType(null)}
+                                  onClick={() => {
+                                      setSelectedDisasterType(null);
+                                      setEmergencyBuildings([]);
+                                  }}
                               >
                                   Clear Selection
                               </button>
+                          </div>
+                      )}
+
+                      {/* Emergency buildings list */}
+                      {selectedDisasterType && emergencyBuildings.length > 0 && (
+                          <div className="bg-success/90 backdrop-blur-sm text-success-content rounded-lg p-4 shadow-lg mb-4 max-h-64 overflow-y-auto">
+                              <h3 className="font-bold mb-2 flex items-center gap-2">
+                                  <span className="text-lg">🏥</span>
+                                  Emergency Buildings Nearby ({emergencyBuildings.length})
+                              </h3>
+                              <div className="space-y-2">
+                                  {emergencyBuildings.map((building) => (
+                                      <div key={building.id} className="bg-base-100/20 rounded p-2">
+                                          <div className="flex items-center gap-2">
+                                              <span className="text-sm font-medium">
+                                                  {building.type === 'hospital' && '🏥'}
+                                                  {building.type === 'clinic' && '🩺'}
+                                                  {building.type === 'pharmacy' && '�'}
+                                                  {building.type === 'emergency' && '🚨'}
+                                                  {!['hospital', 'clinic', 'pharmacy', 'emergency'].includes(building.type) && '🏢'}
+                                              </span>
+                                              <span className="font-semibold">{building.name}</span>
+                                              {building.distance && (
+                                                  <span className="text-xs bg-base-100/30 px-2 py-1 rounded">
+                                                      {(building.distance / 1000).toFixed(1)} km
+                                                  </span>
+                                              )}
+                                          </div>
+                                          <p className="text-xs mt-1 capitalize">
+                                              {building.type.replace('_', ' ')}
+                                          </p>
+                                          {building.address && (
+                                              <p className="text-xs mt-1 opacity-80">
+                                                  {building.address}
+                                              </p>
+                                          )}
+                                          {building.phone && (
+                                              <p className="text-xs mt-1 opacity-80">
+                                                  📞 {building.phone}
+                                              </p>
+                                          )}
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+
+                      {/* Loading indicator for buildings */}
+                      {isLoadingBuildings && (
+                          <div className="bg-info/90 backdrop-blur-sm text-info-content rounded-lg p-4 shadow-lg mb-4">
+                              <div className="flex items-center gap-2">
+                                  <span className="loading loading-spinner loading-sm"></span>
+                                  <span>Loading emergency buildings...</span>
+                              </div>
                           </div>
                       )}
                     </div>
