@@ -4,6 +4,10 @@ import { Icon } from 'leaflet';
 import L from 'leaflet';
 import { useLocation } from '../contexts/LocationContext';
 import polyline from '@mapbox/polyline';
+import IntelligentFacilityService from '../services/intelligentFacilityService';
+import FacilityRecommendation from '../services/intelligentFacilityService';
+import DisasterInfo from "../services/intelligentFacilityService";
+
 import 'leaflet/dist/leaflet.css';
 
 interface EmergencyBuilding {
@@ -85,16 +89,22 @@ const MapClickHandler: React.FC = () => {
 interface LocationPickerProps {
   className?: string;
   emergencyBuildings?: EmergencyBuilding[];
+  selectedDisasterType?: string;
+  disasterInfo?: DisasterInfo;
 }
 
 const LocationPicker: React.FC<LocationPickerProps> = ({ 
   className = '',
-  emergencyBuildings = []
+  emergencyBuildings = [],
+  selectedDisasterType,
+  disasterInfo
 }) => {
   const { selectedLocation } = useLocation();
   const mapRef = useRef<L.Map | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
   const [closestBuilding, setClosestBuilding] = useState<EmergencyBuilding | null>(null);
+  const [facilityRecommendation, setFacilityRecommendation] = useState<FacilityRecommendation | null>(null);
+  const [intelligentFacilityService] = useState(() => new IntelligentFacilityService());
 
   const defaultCenter: [number, number] = [9.9177, 78.1125];
 
@@ -162,29 +172,78 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     }
   };
 
-  // Find closest emergency building and fetch route
+  // Find best emergency building using AI and fetch route
   useEffect(() => {
     console.log('useEffect triggered - selectedLocation:', selectedLocation, 'buildings:', emergencyBuildings.length);
     if (selectedLocation && emergencyBuildings.length > 0) {
-      // Find the closest building
-      const closest = emergencyBuildings.reduce((prev, current) => 
-        (prev.distance || Infinity) < (current.distance || Infinity) ? prev : current
-      );
       
-      console.log('Closest building found:', closest.name, 'at', closest.latitude, closest.longitude);
-      setClosestBuilding(closest);
+      const selectBestFacility = async () => {
+        let selectedBuilding: EmergencyBuilding;
+        
+        // Use AI to select best facility if disaster info is available
+        console.log('Selected disaster type:', selectedDisasterType);
+        console.log('Disaster info:', disasterInfo);
+        if (selectedDisasterType && disasterInfo) {
+          console.log('Using AI to select best facility for disaster:', selectedDisasterType);
+          try {
+            const recommendation = await intelligentFacilityService.selectBestFacility(
+              selectedDisasterType,
+              disasterInfo,
+              emergencyBuildings
+            );
+            
+            if (recommendation) {
+              setFacilityRecommendation(recommendation);
+              const recommendedBuilding = emergencyBuildings.find(b => b.id === recommendation.buildingId);
+              if (recommendedBuilding) {
+                selectedBuilding = recommendedBuilding;
+                console.log('AI selected facility:', recommendedBuilding.name, 'Score:', recommendation.score);
+                console.log('AI reasoning:', recommendation.reasoning);
+              } else {
+                // Fallback to closest if AI selection fails
+                selectedBuilding = emergencyBuildings.reduce((prev, current) => 
+                  (prev.distance || Infinity) < (current.distance || Infinity) ? prev : current
+                );
+              }
+            } else {
+              // Fallback to closest if AI fails
+              selectedBuilding = emergencyBuildings.reduce((prev, current) => 
+                (prev.distance || Infinity) < (current.distance || Infinity) ? prev : current
+              );
+            }
+          } catch (error) {
+            console.error('Error in AI facility selection:', error);
+            // Fallback to closest
+            selectedBuilding = emergencyBuildings.reduce((prev, current) => 
+              (prev.distance || Infinity) < (current.distance || Infinity) ? prev : current
+            );
+          }
+        } else {
+          // Fallback to closest building if no disaster info
+          selectedBuilding = emergencyBuildings.reduce((prev, current) => 
+            (prev.distance || Infinity) < (current.distance || Infinity) ? prev : current
+          );
+          console.log('No disaster info available, using closest building:', selectedBuilding.name);
+        }
+        
+        console.log('Selected building:', selectedBuilding.name, 'at', selectedBuilding.latitude, selectedBuilding.longitude);
+        setClosestBuilding(selectedBuilding);
+        
+        // Fetch route to selected building
+        fetchRoute(
+          [selectedLocation.lat, selectedLocation.lng],
+          [selectedBuilding.latitude, selectedBuilding.longitude]
+        );
+      };
       
-      // Fetch route to closest building
-      fetchRoute(
-        [selectedLocation.lat, selectedLocation.lng],
-        [closest.latitude, closest.longitude]
-      );
+      selectBestFacility();
     } else {
       console.log('Clearing route - no location or buildings');
       setRouteCoordinates([]);
       setClosestBuilding(null);
+      setFacilityRecommendation(null);
     }
-  }, [selectedLocation, emergencyBuildings]);
+  }, [selectedLocation, emergencyBuildings, selectedDisasterType, disasterInfo, intelligentFacilityService]);
 
   useEffect(() => {
     // @ts-expect-error - Leaflet internal API
@@ -259,6 +318,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           {/* Emergency buildings markers */}
           {emergencyBuildings.map((building) => {
             const isClosest = closestBuilding && building.id === closestBuilding.id;
+            const isAIRecommended = facilityRecommendation && building.id === facilityRecommendation.buildingId;
             return (
               <Marker 
                 key={building.id} 
@@ -268,11 +328,24 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
                 <Popup>
                   <div className="text-sm">
                     <strong>{building.name}</strong>
-                    {isClosest && <span className="ml-2 badge badge-error badge-xs">CLOSEST</span>}
+                    {isClosest && (
+                      <span className="ml-2 badge badge-error badge-xs">
+                        {isAIRecommended ? 'AI RECOMMENDED' : 'CLOSEST'}
+                      </span>
+                    )}
                     <br />
                     <span className="capitalize">{building.type.replace('_', ' ')}</span><br />
                     {building.distance && (
                       <>Distance: {(building.distance / 1000).toFixed(1)} km<br /></>
+                    )}
+                    {isAIRecommended && facilityRecommendation && (
+                      <>
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                          <strong>AI Score: {facilityRecommendation.score}/100</strong><br />
+                          <strong>Priority: {facilityRecommendation.priority.toUpperCase()}</strong><br />
+                          {facilityRecommendation.reasoning}
+                        </div>
+                      </>
                     )}
                     {building.address && (
                       <>Address: {building.address}<br /></>

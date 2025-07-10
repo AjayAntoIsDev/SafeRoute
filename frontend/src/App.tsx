@@ -169,6 +169,7 @@ function AppContent() {
         setSelectedDisaster(null);
         // Modal stays closed, user sees the map with selected disaster
     };
+    console.log("Selected Location:", disasterData);
 
 
     return (
@@ -240,30 +241,35 @@ function AppContent() {
             </div>
 
             <div className="relative flex-1 min-h-0">
-                <LocationPicker emergencyBuildings={emergencyBuildings} />
+                <LocationPicker
+                    emergencyBuildings={emergencyBuildings}
+                    selectedDisasterType={selectedDisasterType}
+                    disasterInfo={disasterData || undefined}
+                />
                 <div className="absolute top-4 left-4 right-4 z-[1000] pointer-events-none">
                     <div className="flex flex-col gap-4 pointer-events-auto ">
-                        <div className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 transition-all duration-1000 ease-in-out ${
-                          selectedLocation 
-                            ? 'opacity-0 -translate-y-4 pointer-events-none' 
-                            : 'opacity-100 translate-y-0'
-                        }`}>
-                          <div role="alert" className="alert alert-info">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              className="h-6 w-6 shrink-0 stroke-current">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span>
-                              Tap anywhere to select your location
-                            </span>
-                          </div>
+                        <div
+                            className={`flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 transition-all duration-1000 ease-in-out ${
+                                selectedLocation
+                                    ? "opacity-0 -translate-y-4 pointer-events-none"
+                                    : "opacity-100 translate-y-0"
+                            }`}>
+                            <div role="alert" className="alert alert-info">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    className="h-6 w-6 shrink-0 stroke-current">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>
+                                    Tap anywhere to select your location
+                                </span>
+                            </div>
                         </div>
 
                         {/* Selected location info 
@@ -289,144 +295,187 @@ function AppContent() {
                               )}
                           </div>
                       )}*/}
-                      
-                      {/* Selected disaster type indicator */}
-                      {selectedDisasterType && (
-                          <div className="bg-warning/90 backdrop-blur-sm text-warning-content rounded-lg p-4 shadow-lg mb-4">
-                              <h3 className="font-bold mb-2 flex items-center gap-2">
-                                  <span className="text-lg">
-                                      {selectedDisasterType === 'floods' && '🌊'}
-                                      {selectedDisasterType === 'cyclone' && '🌪️'}
-                                      {selectedDisasterType === 'earthquakes' && '🌍'}
-                                      {selectedDisasterType === 'droughts' && '🌵'}
-                                      {selectedDisasterType === 'landslides' && '⛰️'}
-                                  </span>
-                                  Selected Disaster: {selectedDisasterType.charAt(0).toUpperCase() + selectedDisasterType.slice(1)}
-                              </h3>
-                              <p className="text-sm">
-                                  Risk analysis is shown for this disaster type. 
-                                  {selectedLocation && " Check the map overlay for affected areas."}
-                              </p>
-                              <button 
-                                  className="btn btn-sm btn-ghost mt-2"
-                                  onClick={() => {
-                                      setSelectedDisasterType(null);
-                                      setEmergencyBuildings([]);
-                                  }}
-                              >
-                                  Clear Selection
-                              </button>
-                          </div>
-                      )}
 
-                      {/* Emergency buildings list */}
-                      {selectedDisasterType && emergencyBuildings.length > 0 && (
-                          <div className="bg-success/90 backdrop-blur-sm text-success-content rounded-lg p-4 shadow-lg mb-4 max-h-64 overflow-y-auto">
-                              <h3 className="font-bold mb-2 flex items-center gap-2">
-                                  <span className="text-lg">🏥</span>
-                                  Emergency Buildings Nearby ({emergencyBuildings.length})
-                              </h3>
-                              <div className="space-y-2">
-                                  {emergencyBuildings.map((building) => (
-                                      <div key={building.id} className="bg-base-100/20 rounded p-2">
-                                          <div className="flex items-center gap-2">
-                                              <span className="text-sm font-medium">
-                                                  {building.type === 'hospital' && '🏥'}
-                                                  {building.type === 'clinic' && '🩺'}
-                                                  {building.type === 'pharmacy' && '�'}
-                                                  {building.type === 'emergency' && '🚨'}
-                                                  {!['hospital', 'clinic', 'pharmacy', 'emergency'].includes(building.type) && '🏢'}
-                                              </span>
-                                              <span className="font-semibold">{building.name}</span>
-                                              {building.distance && (
-                                                  <span className="text-xs bg-base-100/30 px-2 py-1 rounded">
-                                                      {(building.distance / 1000).toFixed(1)} km
-                                                  </span>
-                                              )}
-                                          </div>
-                                          <p className="text-xs mt-1 capitalize">
-                                              {building.type.replace('_', ' ')}
-                                          </p>
-                                          {building.address && (
-                                              <p className="text-xs mt-1 opacity-80">
-                                                  {building.address}
-                                              </p>
-                                          )}
-                                          {building.phone && (
-                                              <p className="text-xs mt-1 opacity-80">
-                                                  📞 {building.phone}
-                                              </p>
-                                          )}
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      )}
+                        {/* Selected disaster type indicator */}
+                        {selectedDisasterType && (
+                            <div
+                                className={`absolute rounded-lg p-4 mb-4 badge ${
+                                    disasterData &&
+                                    disasterData.analysis[selectedDisasterType]
+                                        ?.probability >= 0.7
+                                        ? "badge-error"
+                                        : disasterData &&
+                                          disasterData.analysis[
+                                              selectedDisasterType
+                                          ]?.probability >= 0.4
+                                        ? "badge-warning"
+                                        : "badge-success"
+                                }`}>
+                                <h3 className="font-bold flex items-center gap-2">
+                                    <span className="text-lg">
+                                        {selectedDisasterType === "floods" &&
+                                            "🌊"}
+                                        {selectedDisasterType === "cyclone" &&
+                                            "🌪️"}
+                                        {selectedDisasterType ===
+                                            "earthquakes" && "🌍"}
+                                        {selectedDisasterType === "droughts" &&
+                                            "🌵"}
+                                        {selectedDisasterType ===
+                                            "landslides" && "⛰️"}
+                                    </span>
 
-                      {/* Loading indicator for buildings */}
-                      {isLoadingBuildings && (
-                          <div className="bg-info/90 backdrop-blur-sm text-info-content rounded-lg p-4 shadow-lg mb-4">
-                              <div className="flex items-center gap-2">
-                                  <span className="loading loading-spinner loading-sm"></span>
-                                  <span>Loading emergency buildings...</span>
-                              </div>
-                          </div>
-                      )}
+                                    {selectedDisasterType
+                                        .charAt(0)
+                                        .toUpperCase() +
+                                        selectedDisasterType.slice(1)}
+                                </h3>
+                                {/*
+                                <button
+                                    className="btn btn-sm btn-ghost mt-2"
+                                    onClick={() => {
+                                        setSelectedDisasterType(null);
+                                        setEmergencyBuildings([]);
+                                    }}>
+                                    Clear Selection
+                                </button> */}
+                            </div>
+                        )}
+
+                        {/* Emergency buildings list */}
+                        {selectedDisasterType &&
+                            emergencyBuildings.length > 0 && (
+                                <div className="bg-success/90 backdrop-blur-sm text-success-content rounded-lg p-4 shadow-lg mb-4 max-h-64 overflow-y-auto">
+                                    <h3 className="font-bold mb-2 flex items-center gap-2">
+                                        <span className="text-lg">🏥</span>
+                                        Emergency Buildings Nearby (
+                                        {emergencyBuildings.length})
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {emergencyBuildings.map((building) => (
+                                            <div
+                                                key={building.id}
+                                                className="bg-base-100/20 rounded p-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-medium">
+                                                        {building.type ===
+                                                            "hospital" && "🏥"}
+                                                        {building.type ===
+                                                            "clinic" && "🩺"}
+                                                        {building.type ===
+                                                            "pharmacy" && "�"}
+                                                        {building.type ===
+                                                            "emergency" && "🚨"}
+                                                        {![
+                                                            "hospital",
+                                                            "clinic",
+                                                            "pharmacy",
+                                                            "emergency",
+                                                        ].includes(
+                                                            building.type
+                                                        ) && "🏢"}
+                                                    </span>
+                                                    <span className="font-semibold">
+                                                        {building.name}
+                                                    </span>
+                                                    {building.distance && (
+                                                        <span className="text-xs bg-base-100/30 px-2 py-1 rounded">
+                                                            {(
+                                                                building.distance /
+                                                                1000
+                                                            ).toFixed(1)}{" "}
+                                                            km
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs mt-1 capitalize">
+                                                    {building.type.replace(
+                                                        "_",
+                                                        " "
+                                                    )}
+                                                </p>
+                                                {building.address && (
+                                                    <p className="text-xs mt-1 opacity-80">
+                                                        {building.address}
+                                                    </p>
+                                                )}
+                                                {building.phone && (
+                                                    <p className="text-xs mt-1 opacity-80">
+                                                        📞 {building.phone}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                        {/* Loading indicator for buildings */}
+                        {isLoadingBuildings && (
+                            <div className="bg-info/90 backdrop-blur-sm text-info-content rounded-lg p-4 shadow-lg mb-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="loading loading-spinner loading-sm"></span>
+                                    <span>Loading emergency buildings...</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {selectedLocation && !showModal && (
-                  <button 
-                    className="btn btn-primary mb-4 absolute bottom-4 left-4 right-4 z-[1000]" 
-                    onClick={async () => {
-                    setShowModal(true);
-                    setIsLoading(true);
-                    setDisasterData(null);
-                    
-                    try {
-                      const response = await fetch('http://localhost:8000/predict-disaster', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        latitude: selectedLocation.lat,
-                        longitude: selectedLocation.lng
-                      })
-                      });
-                      const data = await response.json();
-                      setDisasterData(data);
-                      console.log(data);
-                    } catch (error) {
-                      console.error('Error:', error);
-                    } finally {
-                      setIsLoading(false);
-                    }
-                    }}
-                  >
-                    Confirm Location
-                  </button>
+                    <button
+                        className="btn btn-primary mb-4 absolute bottom-4 left-4 right-4 z-[1000]"
+                        onClick={async () => {
+                            setShowModal(true);
+                            setIsLoading(true);
+                            setDisasterData(null);
+
+                            try {
+                                const response = await fetch(
+                                    "http://localhost:8000/predict-disaster",
+                                    {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                            latitude: selectedLocation.lat,
+                                            longitude: selectedLocation.lng,
+                                        }),
+                                    }
+                                );
+                                const data = await response.json();
+                                setDisasterData(data);
+                                console.log(data);
+                            } catch (error) {
+                                console.error("Error:", error);
+                            } finally {
+                                setIsLoading(false);
+                            }
+                        }}>
+                        Confirm Location
+                    </button>
                 )}
 
-            <DisasterResultModal
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                data={disasterData}
-                isLoading={isLoading}
-                onDisasterSelected={handleDisasterSelection}
-                onShowDisasterDetail={handleShowDisasterDetail}
-            />
-
-            {/* Full-screen disaster detail view */}
-            {showDetailView && selectedDisaster && (
-                <DisasterDetailView
-                    allData={disasterData}
-                    disaster={selectedDisaster.data}
-                    disasterType={selectedDisaster.type}
-                    onClose={handleCloseDetailView}
-                    onSelectForMap={handleSelectForMap}
+                <DisasterResultModal
+                    isOpen={showModal}
+                    onClose={() => setShowModal(false)}
+                    data={disasterData}
+                    isLoading={isLoading}
+                    onDisasterSelected={handleDisasterSelection}
+                    onShowDisasterDetail={handleShowDisasterDetail}
                 />
-            )}
+
+                {/* Full-screen disaster detail view */}
+                {showDetailView && selectedDisaster && (
+                    <DisasterDetailView
+                        allData={disasterData}
+                        disaster={selectedDisaster.data}
+                        disasterType={selectedDisaster.type}
+                        onClose={handleCloseDetailView}
+                        onSelectForMap={handleSelectForMap}
+                    />
+                )}
             </div>
         </div>
     );
