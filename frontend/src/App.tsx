@@ -63,6 +63,7 @@ function AppContent() {
     } | null>(null);
     const [emergencyBuildings, setEmergencyBuildings] = useState<EmergencyBuilding[]>([]);
     const [isLoadingBuildings, setIsLoadingBuildings] = useState(false);
+    const [isLoadingMapSelection, setIsLoadingMapSelection] = useState(false);
 
     const fetchEmergencyBuildings = async (lat: number, lng: number) => {
         setIsLoadingBuildings(true);
@@ -163,7 +164,12 @@ function AppContent() {
 
     const handleSelectForMap = async () => {
         if (selectedDisaster) {
-            await handleDisasterSelection(selectedDisaster.type);
+            setIsLoadingMapSelection(true);
+            try {
+                await handleDisasterSelection(selectedDisaster.type);
+            } finally {
+                setIsLoadingMapSelection(false);
+            }
         }
         setShowDetailView(false);
         setSelectedDisaster(null);
@@ -475,6 +481,21 @@ function AppContent() {
                         onClose={handleCloseDetailView}
                         onSelectForMap={handleSelectForMap}
                     />
+                )}
+
+                {/* Loading overlay for map selection */}
+                {isLoadingMapSelection && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000]">
+                        <div className="bg-base-100 rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+                            <span className="loading loading-spinner loading-lg text-primary"></span>
+                            <div className="text-center">
+                                <h3 className="font-bold text-lg mb-2">Loading Map View</h3>
+                                <p className="text-sm opacity-70">
+                                    Preparing disaster visualization and finding nearby emergency facilities...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
