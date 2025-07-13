@@ -3,6 +3,8 @@ import { LocationProvider, useLocation } from "./contexts/LocationContext";
 import LocationPicker from "./components/LocationPicker";
 import DisasterResultModal from "./components/DisasterResultModal";
 import DisasterDetailView from "./components/DisasterDetailView";
+import { routeService } from "./services/routeService";
+import { config } from "./config";
 import "./App.css";
 
 interface DisasterInfo {
@@ -51,7 +53,7 @@ interface OSMResponse {
 }
 
 function AppContent() {
-    const { selectedLocation } = useLocation();
+    const { selectedLocation, setSelectedLocation } = useLocation();
     const [isLoading, setIsLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [disasterData, setDisasterData] = useState(null);
@@ -68,7 +70,7 @@ function AppContent() {
     const fetchEmergencyBuildings = async (lat: number, lng: number) => {
         setIsLoadingBuildings(true);
         try {
-            const response = await fetch('http://localhost:8000/buildings-emergency?radius=1500', {
+            const response = await fetch(`${config.backend.baseUrl}/buildings-emergency?radius=${config.map.emergencyBuildingsRadius}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -100,44 +102,49 @@ function AppContent() {
                                 phone: element.tags.phone || undefined
                             };
                             
-                            // Calculate distance from selected location
-                            const distance = calculateDistance(
-                                lat, lng,
-                                building.latitude, building.longitude
-                            );
-                            building.distance = distance;
-                            
                             buildings.push(building);
                         }
                     }
                 });
             }
             
-            // Sort by distance and limit to closest 20
-            buildings.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-            const limitedBuildings = buildings.slice(0, 20);
+            // Calculate actual road distances for all buildings using Matrix API
+            console.log('Calculating road distances for', buildings.length, 'buildings using Matrix API...');
+            const destinations = buildings.map(building => ({
+                lat: building.latitude,
+                lng: building.longitude,
+                id: building.id
+            }));
+            
+            const distanceResults = await routeService.calculateMultipleDistances(
+                lat, lng, destinations, config.map.routingProfile
+            );
+            
+            // Add distance information to buildings
+            buildings.forEach(building => {
+                const distanceResult = distanceResults.get(building.id);
+                if (distanceResult) {
+                    building.distance = distanceResult.distance;
+                    // You could also add duration if needed:
+                    // building.duration = distanceResult.duration;
+                }
+            });
+            
+            // Filter out buildings without distance (failed calculations) and sort by distance
+            const buildingsWithDistance = buildings.filter(building => building.distance !== undefined);
+            buildingsWithDistance.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+            
+            // Limit to closest buildings
+            const limitedBuildings = buildingsWithDistance.slice(0, config.map.maxEmergencyBuildings);
             
             setEmergencyBuildings(limitedBuildings);
-            console.log('Processed emergency buildings:', limitedBuildings);
+            console.log('Processed emergency buildings with actual road distances:', limitedBuildings);
         } catch (error) {
             console.error('Error fetching emergency buildings:', error);
             setEmergencyBuildings([]);
         } finally {
             setIsLoadingBuildings(false);
         }
-    };
-
-    // Helper function to calculate distance between two coordinates
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-        const R = 6371000; // Earth's radius in meters
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
     };
 
     const handleDisasterSelection = async (disasterType: string) => {
@@ -174,6 +181,24 @@ function AppContent() {
         setShowDetailView(false);
         setSelectedDisaster(null);
         // Modal stays closed, user sees the map with selected disaster
+    };
+
+    const handleResetToStart = () => {
+        // Reset all state to initial values
+        setIsLoading(false);
+        setShowModal(false);
+        setDisasterData(null);
+        setSelectedDisasterType(null);
+        setShowDetailView(false);
+        setSelectedDisaster(null);
+        setEmergencyBuildings([]);
+        setIsLoadingBuildings(false);
+        setIsLoadingMapSelection(false);
+        
+        // Clear the selected location from the context
+        setSelectedLocation(null);
+        
+        console.log("Application reset to initial state");
     };
     console.log("Selected Location:", disasterData);
 
@@ -304,47 +329,58 @@ function AppContent() {
 
                         {/* Selected disaster type indicator */}
                         {selectedDisasterType && (
-                            <div
-                                className={`absolute rounded-lg p-4 mb-4 badge ${
-                                    disasterData &&
-                                    disasterData.analysis[selectedDisasterType]
-                                        ?.probability >= 0.7
-                                        ? "badge-error"
-                                        : disasterData &&
-                                          disasterData.analysis[
-                                              selectedDisasterType
-                                          ]?.probability >= 0.4
-                                        ? "badge-warning"
-                                        : "badge-success"
-                                }`}>
-                                <h3 className="font-bold flex items-center gap-2">
-                                    <span className="text-lg">
-                                        {selectedDisasterType === "floods" &&
-                                            "🌊"}
-                                        {selectedDisasterType === "cyclone" &&
-                                            "🌪️"}
-                                        {selectedDisasterType ===
-                                            "earthquakes" && "🌍"}
-                                        {selectedDisasterType === "droughts" &&
-                                            "🌵"}
-                                        {selectedDisasterType ===
-                                            "landslides" && "⛰️"}
-                                    </span>
+                            <div className="flex items-center gap-2">
+                                <div
+                                    className={`rounded-lg p-4 badge ${
+                                        disasterData &&
+                                        disasterData.analysis[selectedDisasterType]
+                                            ?.probability >= 0.7
+                                            ? "badge-error"
+                                            : disasterData &&
+                                              disasterData.analysis[
+                                                  selectedDisasterType
+                                              ]?.probability >= 0.4
+                                            ? "badge-warning"
+                                            : "badge-success"
+                                    }`}>
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <span className="text-lg">
+                                            {selectedDisasterType === "floods" &&
+                                                "🌊"}
+                                            {selectedDisasterType === "cyclone" &&
+                                                "🌪️"}
+                                            {selectedDisasterType ===
+                                                "earthquakes" && "🌍"}
+                                            {selectedDisasterType === "droughts" &&
+                                                "🌵"}
+                                            {selectedDisasterType ===
+                                                "landslides" && "⛰️"}
+                                        </span>
 
-                                    {selectedDisasterType
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        selectedDisasterType.slice(1)}
-                                </h3>
-                                {/*
+                                        {selectedDisasterType
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            selectedDisasterType.slice(1)}
+                                    </h3>
+                                </div>
                                 <button
-                                    className="btn btn-sm btn-ghost mt-2"
-                                    onClick={() => {
-                                        setSelectedDisasterType(null);
-                                        setEmergencyBuildings([]);
-                                    }}>
-                                    Clear Selection
-                                </button> */}
+                                    className="btn btn-sm btn-circle btn-ghost hover:btn-error"
+                                    onClick={handleResetToStart}
+                                    title="Start Over">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
                             </div>
                         )}
 
@@ -369,7 +405,7 @@ function AppContent() {
                                                         {building.type ===
                                                             "clinic" && "🩺"}
                                                         {building.type ===
-                                                            "pharmacy" && "�"}
+                                                            "pharmacy" && "💊"}
                                                         {building.type ===
                                                             "emergency" && "🚨"}
                                                         {![
@@ -413,6 +449,28 @@ function AppContent() {
                                             </div>
                                         ))}
                                     </div>
+                                    
+                                    {/* Reset button */}
+                                    <div className="mt-4 pt-3 border-t border-base-100/30">
+                                        <button
+                                            className="btn btn-sm btn-outline btn-base-100 w-full"
+                                            onClick={handleResetToStart}>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-4 w-4 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                />
+                                            </svg>
+                                            Start Over
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -421,7 +479,7 @@ function AppContent() {
                             <div className="bg-info/90 backdrop-blur-sm text-info-content rounded-lg p-4 shadow-lg mb-4">
                                 <div className="flex items-center gap-2">
                                     <span className="loading loading-spinner loading-sm"></span>
-                                    <span>Loading emergency buildings...</span>
+                                    <span>Calculating road distances to emergency buildings...</span>
                                 </div>
                             </div>
                         )}
@@ -438,7 +496,7 @@ function AppContent() {
 
                             try {
                                 const response = await fetch(
-                                    "http://localhost:8000/predict-disaster",
+                                    `${config.backend.baseUrl}/predict-disaster`,
                                     {
                                         method: "POST",
                                         headers: {
