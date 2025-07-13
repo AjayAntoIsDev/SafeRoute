@@ -276,6 +276,7 @@ function AppContent() {
                     emergencyBuildings={emergencyBuildings}
                     selectedDisasterType={selectedDisasterType}
                     disasterInfo={disasterData || undefined}
+                    isLocationLocked={showModal || selectedDisasterType !== null}
                 />
                 <div className="absolute top-4 left-4 right-4 z-[1000] pointer-events-none">
                     <div className="flex flex-col gap-4 pointer-events-auto ">
@@ -486,10 +487,21 @@ function AppContent() {
                     </div>
                 </div>
 
-                {selectedLocation && !showModal && (
+                {selectedLocation && (
                     <button
-                        className="btn btn-primary mb-4 absolute bottom-4 left-4 right-4 z-[1000]"
+                        className={`btn mb-4 absolute bottom-4 left-4 right-4 z-[1000] ${
+                            showModal || selectedDisasterType !== null 
+                                ? "btn-secondary" 
+                                : "btn-primary"
+                        }`}
                         onClick={async () => {
+                            // If we're showing results or have selected a disaster, reset everything
+                            if (showModal || selectedDisasterType !== null) {
+                                handleResetToStart();
+                                return;
+                            }
+
+                            // Otherwise, proceed with confirming location
                             setShowModal(true);
                             setIsLoading(true);
                             setDisasterData(null);
@@ -517,7 +529,26 @@ function AppContent() {
                                 setIsLoading(false);
                             }
                         }}>
-                        Confirm Location
+                        {showModal || selectedDisasterType !== null ? (
+                            <>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 mr-2"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    />
+                                </svg>
+                                Start Over
+                            </>
+                        ) : (
+                            "Confirm Location"
+                        )}
                     </button>
                 )}
 

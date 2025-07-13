@@ -6,24 +6,15 @@ import { useLocation } from '../contexts/LocationContext';
 import polyline from '@mapbox/polyline';
 import IntelligentFacilityService from '../services/intelligentFacilityService';
 import FacilityRecommendation from '../services/intelligentFacilityService';
-import DisasterInfo from "../services/intelligentFacilityService";
 
 import 'leaflet/dist/leaflet.css';
-
-interface EmergencyBuilding {
-  id: string;
-  name: string;
-  type: string;
-  latitude: number;
-  longitude: number;
-  address?: string;
-  phone?: string;
-  distance?: number;
-}
 
 interface LocationPickerProps {
   className?: string;
   emergencyBuildings: EmergencyBuilding[];
+  selectedDisasterType?: string | null;
+  disasterInfo?: Record<string, unknown>;
+  isLocationLocked?: boolean;
 }
 
 interface RouteCoordinate {
@@ -73,11 +64,16 @@ const createEmergencyIcon = (type: string, isClosest: boolean = false) => {
   });
 };
 
-const MapClickHandler: React.FC = () => {
+const MapClickHandler: React.FC<{ isLocationLocked?: boolean }> = ({ isLocationLocked = false }) => {
   const { setSelectedLocation } = useLocation();
   
   useMapEvents({
     click: (e) => {
+      // Don't allow location changes if locked
+      if (isLocationLocked) {
+        return;
+      }
+      
       const { lat, lng } = e.latlng;
       setSelectedLocation({ lat, lng });
     },
@@ -86,18 +82,12 @@ const MapClickHandler: React.FC = () => {
   return null;
 };
 
-interface LocationPickerProps {
-  className?: string;
-  emergencyBuildings?: EmergencyBuilding[];
-  selectedDisasterType?: string;
-  disasterInfo?: DisasterInfo;
-}
-
 const LocationPicker: React.FC<LocationPickerProps> = ({ 
   className = '',
   emergencyBuildings = [],
   selectedDisasterType,
-  disasterInfo
+  disasterInfo,
+  isLocationLocked = false
 }) => {
   const { selectedLocation } = useLocation();
   const mapRef = useRef<L.Map | null>(null);
@@ -262,6 +252,14 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   return (
     <div className={`location-picker relative h-full w-full ${className}`} style={{ minHeight: '300px' }}>
+      {isLocationLocked && (
+        <div className="absolute top-4 left-4 z-[500] pointer-events-none">
+          <div className="bg-white/90 rounded-lg p-3 shadow-lg">
+            <p className="text-sm font-medium text-gray-700">🔒 Location Locked</p>
+            <p className="text-xs text-gray-500">You can still explore the map</p>
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0">
         <MapContainer
           center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : defaultCenter}
@@ -274,7 +272,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           dragging={true}
           tap={true}
           tapTolerance={15}
-          zoomControl={false}
+          zoomControl={true}
           attributionControl={true}
         >
           <TileLayer
@@ -282,7 +280,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          <MapClickHandler />
+          <MapClickHandler isLocationLocked={isLocationLocked} />
           
           {selectedLocation && (
             <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
