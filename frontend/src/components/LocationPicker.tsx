@@ -93,13 +93,76 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   facilityRecommendation = null,
   onFacilityRecommendationChange
 }) => {
-  const { selectedLocation } = useLocation();
+  const { selectedLocation, setSelectedLocation } = useLocation();
   const mapRef = useRef<L.Map | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
   const [closestBuilding, setClosestBuilding] = useState<EmergencyBuilding | null>(null);
   const [intelligentFacilityService] = useState(() => new IntelligentFacilityService());
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsSuccess, setGpsSuccess] = useState(false);
 
   const defaultCenter: [number, number] = [9.9177, 78.1125];
+
+  // Function to get user's current GPS location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation is not supported by this browser');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    setGpsError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log('GPS location obtained:', latitude, longitude);
+        
+        // Set the location in the context
+        setSelectedLocation({
+          lat: latitude,
+          lng: longitude,
+          address: `GPS Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+        });
+
+        // Center the map on the new location
+        if (mapRef.current) {
+          mapRef.current.setView([latitude, longitude], 15);
+        }
+
+        setIsGettingLocation(false);
+        setGpsSuccess(true);
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setGpsSuccess(false), 3000);
+      },
+      (error) => {
+        console.error('GPS error:', error);
+        let errorMessage = 'Unable to get your location';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied by user';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out';
+            break;
+        }
+        
+        setGpsError(errorMessage);
+        setIsGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
 
   // OpenRouteService API key (you'll need to get this from https://openrouteservice.org/)
   const ORS_API_KEY =
@@ -263,6 +326,94 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           </div>
         </div>
       )}
+      
+      {/* GPS Location Button */}
+      <div className="absolute bottom-24 right-4 z-[500]">
+        <button
+          onClick={getCurrentLocation}
+          disabled={isGettingLocation || isLocationLocked}
+          className={`btn btn-circle shadow-lg transition-all duration-200 ${
+            isGettingLocation 
+              ? 'btn-disabled' 
+              : isLocationLocked 
+                ? 'btn-neutral' 
+                : 'btn-primary hover:btn-primary-focus'
+          }`}
+          title={isLocationLocked ? "Location is locked" : "Get my current location"}
+        >
+          {isGettingLocation ? (
+            <span className="loading loading-spinner loading-sm"></span>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          )}
+        </button>
+        
+        {/* GPS Error Toast */}
+        {gpsError && (
+          <div className="alert alert-error mt-2 text-xs max-w-xs">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-current shrink-0 h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>{gpsError}</span>
+            <button
+              onClick={() => setGpsError(null)}
+              className="btn btn-xs btn-ghost"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
+        {/* GPS Success Toast */}
+        {gpsSuccess && (
+          <div className="alert alert-success mt-2 text-xs max-w-xs">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-current shrink-0 h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Location found!</span>
+          </div>
+        )}
+      </div>
+      
       <div className="absolute inset-0">
         <MapContainer
           center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : defaultCenter}
