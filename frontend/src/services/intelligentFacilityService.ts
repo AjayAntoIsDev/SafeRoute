@@ -95,6 +95,7 @@ Consider these factors:
 3. Distance from the incident location
 4. Facility capacity based on type (hospitals > clinics > pharmacies)
 5. Appropriateness for the specific disaster (e.g., flood victims need hospitals with evacuation capabilities)
+6. Try to figure out what kind of hospital it is using its name and use it to make a decision.
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -110,7 +111,7 @@ Respond ONLY with valid JSON in this exact format:
               },
           ],
           model: "llama-3.3-70b-versatile",
-          temperature: 0.4,
+          temperature: 0.6,
           max_tokens: 1500,
       });
 

@@ -15,6 +15,8 @@ interface LocationPickerProps {
   selectedDisasterType?: string | null;
   disasterInfo?: Record<string, unknown>;
   isLocationLocked?: boolean;
+  facilityRecommendation?: FacilityRecommendation | null;
+  onFacilityRecommendationChange?: (recommendation: FacilityRecommendation | null) => void;
 }
 
 interface RouteCoordinate {
@@ -87,13 +89,14 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   emergencyBuildings = [],
   selectedDisasterType,
   disasterInfo,
-  isLocationLocked = false
+  isLocationLocked = false,
+  facilityRecommendation = null,
+  onFacilityRecommendationChange
 }) => {
   const { selectedLocation } = useLocation();
   const mapRef = useRef<L.Map | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinate[]>([]);
   const [closestBuilding, setClosestBuilding] = useState<EmergencyBuilding | null>(null);
-  const [facilityRecommendation, setFacilityRecommendation] = useState<FacilityRecommendation | null>(null);
   const [intelligentFacilityService] = useState(() => new IntelligentFacilityService());
 
   const defaultCenter: [number, number] = [9.9177, 78.1125];
@@ -183,7 +186,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             );
             
             if (recommendation) {
-              setFacilityRecommendation(recommendation);
+              onFacilityRecommendationChange?.(recommendation);
               const recommendedBuilding = emergencyBuildings.find(b => b.id === recommendation.buildingId);
               if (recommendedBuilding) {
                 selectedBuilding = recommendedBuilding;
@@ -231,9 +234,9 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       console.log('Clearing route - no location or buildings');
       setRouteCoordinates([]);
       setClosestBuilding(null);
-      setFacilityRecommendation(null);
+      onFacilityRecommendationChange?.(null);
     }
-  }, [selectedLocation, emergencyBuildings, selectedDisasterType, disasterInfo, intelligentFacilityService]);
+  }, [selectedLocation, emergencyBuildings, selectedDisasterType, disasterInfo, intelligentFacilityService, onFacilityRecommendationChange]);
 
   useEffect(() => {
     // @ts-expect-error - Leaflet internal API
@@ -272,7 +275,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           dragging={true}
           tap={true}
           tapTolerance={15}
-          zoomControl={true}
+          zoomControl={false}
           attributionControl={true}
         >
           <TileLayer

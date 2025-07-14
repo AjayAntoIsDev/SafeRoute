@@ -14,6 +14,7 @@ interface DisasterDetailViewProps {
   disasterType: string;
   onClose: () => void;
   onSelectForMap: () => void;
+  isLoadingMapSelection?: boolean;
 }
 
 const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
@@ -21,7 +22,8 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
   disaster,
   disasterType,
   onClose,
-  onSelectForMap
+  onSelectForMap,
+  isLoadingMapSelection = false
 }) => {
   const [showChatbot, setShowChatbot] = useState(true);
 
@@ -58,6 +60,25 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
 
   return (
       <div className="fixed inset-0 bg-base-100 z-[9999] overflow-y-auto animate-fade-in">
+          {/* Loading overlay for map preparation */}
+          {isLoadingMapSelection && (
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
+                  <div className="bg-base-100 rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+                      <span className="loading loading-spinner loading-lg text-primary"></span>
+                      <div className="text-center">
+                          <h3 className="font-bold text-lg mb-2">Preparing Map View</h3>
+                          <p className="text-sm opacity-70 mb-2">
+                              Loading disaster visualization...
+                          </p>
+                          <div className="flex items-center gap-2 text-xs opacity-60">
+                              <span className="animate-pulse">●</span>
+                              <span>Finding emergency facilities</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          )}
+          
           <div className="min-h-screen w-full p-4 md:p-6 max-w-6xl mx-auto">
               <div className="flex items-center justify-between gap-4 mb-6">
                   <div className="flex items-center gap-4">
@@ -137,13 +158,22 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                   </button>
                   <button
                       className="btn btn-outline w-full sm:w-auto"
-                      onClick={onClose}>
+                      onClick={onClose}
+                      disabled={isLoadingMapSelection}>
                       Back to Overview
                   </button>
                   <button
-                      className="btn btn-primary w-full sm:w-auto"
-                      onClick={onSelectForMap}>
-                      Show on Map
+                      className={`btn btn-primary w-full sm:w-auto ${isLoadingMapSelection ? 'loading' : ''}`}
+                      onClick={onSelectForMap}
+                      disabled={isLoadingMapSelection}>
+                      {isLoadingMapSelection ? (
+                          <>
+                              <span className="loading loading-spinner loading-sm mr-2"></span>
+                              Preparing Map...
+                          </>
+                      ) : (
+                          'Show on Map'
+                      )}
                   </button>
               </div>
           </div>
