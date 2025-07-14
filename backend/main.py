@@ -6,7 +6,7 @@ from models import CoordinateRequest, DisasterPrediction
 from weather_service import get_weather_data
 from geographic_service import get_geographic_data, get_location_info
 from disaster_analysis import analyze_disaster_risk_with_groq
-from config import INDIA_LAT_MIN, INDIA_LAT_MAX, INDIA_LON_MIN, INDIA_LON_MAX
+from config import INDIA_LAT_MIN, INDIA_LAT_MAX, INDIA_LON_MIN, INDIA_LON_MAX, PORT
 
 app = FastAPI(
     title="SafeRoute API",
@@ -151,4 +151,4 @@ async def get_buildings_and_emergency_facilities(request: CoordinateRequest, rad
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

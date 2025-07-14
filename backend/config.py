@@ -8,6 +8,9 @@ load_dotenv()
 OPENWEATHER_API_KEY = "bd5e378503939ddaee76f12ad7a97608"
 GROQ_API_KEY = "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"
 
+# Server Configuration
+PORT = 8000
+
 # API URLs
 OPENWEATHER_CURRENT_URL = "http://api.openweathermap.org/data/2.5/weather"
 OPENWEATHER_FORECAST_URL = "http://api.openweathermap.org/data/2.5/forecast"
