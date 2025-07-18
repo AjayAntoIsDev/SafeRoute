@@ -62,11 +62,13 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
       <div className="fixed inset-0 bg-base-100 z-[9999] overflow-y-auto animate-fade-in">
           {/* Loading overlay for map preparation */}
           {isLoadingMapSelection && (
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
-                  <div className="bg-base-100 rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] h-[1100px]">
+                  <div className="bg-base-100 rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4 ">
                       <span className="loading loading-spinner loading-lg text-primary"></span>
                       <div className="text-center">
-                          <h3 className="font-bold text-lg mb-2">Preparing Map View</h3>
+                          <h3 className="font-bold text-lg mb-2">
+                              Preparing Map View
+                          </h3>
                           <p className="text-sm opacity-70 mb-2">
                               Loading disaster visualization...
                           </p>
@@ -78,7 +80,7 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                   </div>
               </div>
           )}
-          
+
           <div className="min-h-screen w-full p-4 md:p-6 max-w-6xl mx-auto">
               <div className="flex items-center justify-between gap-4 mb-6">
                   <div className="flex items-center gap-4">
@@ -151,10 +153,19 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                   <button
                       className="btn btn-ghost w-full sm:w-auto hidden"
                       onClick={() => setShowChatbot(!showChatbot)}>
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24">
+                          <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                          />
                       </svg>
-                      {showChatbot ? 'Hide AI Assistant' : 'Ask AI Assistant'}
+                      {showChatbot ? "Hide AI Assistant" : "Ask AI Assistant"}
                   </button>
                   <button
                       className="btn btn-outline w-full sm:w-auto"
@@ -163,7 +174,9 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                       Back to Overview
                   </button>
                   <button
-                      className={`btn btn-primary w-full sm:w-auto ${isLoadingMapSelection ? 'loading' : ''}`}
+                      className={`btn btn-primary w-full sm:w-auto ${
+                          isLoadingMapSelection ? "loading" : ""
+                      }`}
                       onClick={onSelectForMap}
                       disabled={isLoadingMapSelection}>
                       {isLoadingMapSelection ? (
@@ -172,7 +185,7 @@ const DisasterDetailView: React.FC<DisasterDetailViewProps> = ({
                               Preparing Map...
                           </>
                       ) : (
-                          'Show on Map'
+                          "Show on Map"
                       )}
                   </button>
               </div>

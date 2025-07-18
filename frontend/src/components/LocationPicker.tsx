@@ -6,6 +6,8 @@ import { useLocation } from '../contexts/LocationContext';
 import polyline from '@mapbox/polyline';
 import IntelligentFacilityService from '../services/intelligentFacilityService';
 import FacilityRecommendation from '../services/intelligentFacilityService';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 
 import 'leaflet/dist/leaflet.css';
 
@@ -105,19 +107,32 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const defaultCenter: [number, number] = [9.9177, 78.1125];
 
   // Function to get user's current GPS location
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setGpsError('Geolocation is not supported by this browser');
-      return;
-    }
-
+  const getCurrentLocation = async () => {
     setIsGettingLocation(true);
     setGpsError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+    try {
+      // Check if we're running in a Capacitor environment
+      if (Capacitor.isNativePlatform()) {
+        console.log('Using Capacitor Geolocation for native platform');
+        
+        // Request permissions first
+        const permissions = await Geolocation.requestPermissions();
+        if (permissions.location !== 'granted') {
+          setGpsError('Location permission denied');
+          setIsGettingLocation(false);
+          return;
+        }
+
+        // Get current position using Capacitor plugin
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000
+        });
+
         const { latitude, longitude } = position.coords;
-        console.log('GPS location obtained:', latitude, longitude);
+        console.log('GPS location obtained (Capacitor):', latitude, longitude);
         
         // Set the location in the context
         setSelectedLocation({
@@ -136,32 +151,70 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         
         // Clear success message after 3 seconds
         setTimeout(() => setGpsSuccess(false), 3000);
-      },
-      (error) => {
-        console.error('GPS error:', error);
-        let errorMessage = 'Unable to get your location';
+      } else {
+        // Fall back to web geolocation for browser environments
+        console.log('Using web geolocation for browser');
         
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied by user';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out';
-            break;
+        if (!navigator.geolocation) {
+          setGpsError('Geolocation is not supported by this browser');
+          setIsGettingLocation(false);
+          return;
         }
-        
-        setGpsError(errorMessage);
-        setIsGettingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log('GPS location obtained (Web):', latitude, longitude);
+            
+            // Set the location in the context
+            setSelectedLocation({
+              lat: latitude,
+              lng: longitude,
+              address: `GPS Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+            });
+
+            // Center the map on the new location
+            if (mapRef.current) {
+              mapRef.current.setView([latitude, longitude], 15);
+            }
+
+            setIsGettingLocation(false);
+            setGpsSuccess(true);
+            
+            // Clear success message after 3 seconds
+            setTimeout(() => setGpsSuccess(false), 3000);
+          },
+          (error) => {
+            console.error('GPS error:', error);
+            let errorMessage = 'Unable to get your location';
+            
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = 'Location access denied by user';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location information unavailable';
+                break;
+              case error.TIMEOUT:
+                errorMessage = 'Location request timed out';
+                break;
+            }
+            
+            setGpsError(errorMessage);
+            setIsGettingLocation(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+          }
+        );
       }
-    );
+    } catch (error) {
+      console.error('Geolocation error:', error);
+      setGpsError('Failed to get location. Please try again.');
+      setIsGettingLocation(false);
+    }
   };
 
   // OpenRouteService API key (you'll need to get this from https://openrouteservice.org/)

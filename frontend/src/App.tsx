@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { LocationProvider, useLocation } from "./contexts/LocationContext";
 import LocationPicker from "./components/LocationPicker";
 import DisasterResultModal from "./components/DisasterResultModal";
@@ -73,6 +73,33 @@ function AppContent() {
     const [isLoadingMapSelection, setIsLoadingMapSelection] = useState(false);
     const [facilityRecommendation, setFacilityRecommendation] =
         useState<FacilityRecommendation | null>(null);
+
+    // Effect to handle scroll locking and auto-scroll during map selection loading
+    useEffect(() => {
+        if (isLoadingMapSelection) {
+            // Auto-scroll to top
+            window.scrollTo({ top: 0, behavior: "smooth" });
+
+            // Lock scroll by preventing scroll events
+            const preventScroll = (e: Event) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            };
+
+            // Add event listeners to prevent scrolling
+            document.addEventListener("wheel", preventScroll, { passive: false });
+            document.addEventListener("touchmove", preventScroll, { passive: false });
+            document.addEventListener("scroll", preventScroll, { passive: false });
+
+            // Cleanup function to remove event listeners
+            return () => {
+                document.removeEventListener("wheel", preventScroll);
+                document.removeEventListener("touchmove", preventScroll);
+                document.removeEventListener("scroll", preventScroll);
+            };
+        }
+    }, [isLoadingMapSelection]);
 
     const handleFacilityRecommendationChange = useCallback(
         (recommendation: FacilityRecommendation | null) => {
@@ -290,6 +317,13 @@ function AppContent() {
         console.log("Application reset to initial state");
     };
     console.log("Selected Location:", disasterData);
+
+    // Auto-scroll to top on disaster data change
+    useEffect(() => {
+        if (disasterData) {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    }, [disasterData]);
 
     return (
         <div className="h-screen w-screen overflow-hidden flex flex-col">
@@ -567,6 +601,26 @@ function AppContent() {
                                     })}
                                 </div>
                             )}
+
+                        {/* Loading overlay for map selection */}
+                        {isLoadingMapSelection && (
+                            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center">
+                                <div className="bg-base-100 rounded-lg p-6 shadow-2xl max-w-sm mx-4 text-center">
+                                    <div className="flex items-center justify-center mb-4">
+                                        <span className="loading loading-spinner loading-lg text-primary"></span>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-2">
+                                        Loading Map View
+                                    </h3>
+                                    <p className="text-sm opacity-70">
+                                        Calculating optimal routes and finding emergency facilities...
+                                    </p>
+                                    <div className="mt-4">
+                                        <progress className="progress progress-primary w-full"></progress>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Loading indicator for buildings */}
                         {isLoadingBuildings && !isLoadingMapSelection && (
