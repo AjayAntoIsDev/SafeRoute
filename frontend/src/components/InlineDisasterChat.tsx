@@ -37,7 +37,7 @@ const InlineDisasterChat: React.FC<InlineDisasterChatProps> = ({
   const [groqClient, setGroqClient] = useState<Groq | null>(null);
 
   useEffect(() => {
-    const apiKey = "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";
+    const apiKey = "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";
     if (apiKey && apiKey !== 'your-groq-api-key-here') {
       setGroqClient(new Groq({ apiKey, dangerouslyAllowBrowser: true }));
     }

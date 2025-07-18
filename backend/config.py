@@ -6,7 +6,7 @@ load_dotenv()
 
 # API Keys
 OPENWEATHER_API_KEY = "bd5e378503939ddaee76f12ad7a97608"
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 
 # Server Configuration
 PORT = 8000
