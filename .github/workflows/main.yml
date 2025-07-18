@@ -47,7 +47,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu' # Using Zulu OpenJDK
-          java-version: '17'
+          java-version: '21'
 
       # 7. Cache Gradle dependencies to speed up future builds
       - name: Cache Gradle dependencies
