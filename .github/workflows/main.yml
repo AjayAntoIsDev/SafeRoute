@@ -34,7 +34,7 @@ jobs:
 
       # 4. Build the web application
       - name: Build web app
-        run: npm run build
+        run: npx vite build
         working-directory: ./frontend # Run this command in the frontend folder
 
       # 5. Sync the web build with the native Android project
