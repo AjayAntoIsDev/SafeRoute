@@ -37,7 +37,7 @@ async def analyze_disaster_risk_with_groq(
                 },
                 {"role": "user", "content": prompt}
             ],
-            model="deepseek-r1-distill-llama-70b",
+            model="openai/gpt-oss-120b",
             temperature=0.5,
             max_tokens=2500
         )
@@ -227,6 +227,7 @@ def _create_analysis_prompt(weather_data: Dict, geo_data: Dict, location_info: D
 
     4. Contain ONLY the JSON object and nothing else
 
+    5. Give more importance to the current weather conditions in the analysis and less for the geographic data but dont discard it.
 
     IMPORTANT: Do not include any explanatory text, markdown formatting, or code blocks.
 

@@ -10,7 +10,7 @@ export const config = {
 
     // Backend API configuration
     backend: {
-        baseUrl: "https://saferoutebackend.ajayanto.me",
+        baseUrl: "http://127.0.0.1:8000",
     },
 
     // Map and distance calculation settings

@@ -39,7 +39,7 @@ const DisasterChatbot: React.FC<DisasterChatbotProps> = ({
   useEffect(() => {
     // Initialize Groq client
     // Note: In a real app, you'd want to handle the API key more securely
-    const apiKey = "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";
+    const apiKey = "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";
     if (apiKey && apiKey !== 'your-groq-api-key-here') {
       setGroqClient(new Groq({ apiKey, dangerouslyAllowBrowser: true }));
     }

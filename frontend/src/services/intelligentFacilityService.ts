@@ -44,7 +44,7 @@ export class IntelligentFacilityService {
   constructor() {
     // You'll need to add your Groq API key here or via environment variables
     this.apiKey =
-        "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";
+        "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";
     
     if (
         this.apiKey
